@@ -1,0 +1,33 @@
+# 🌸 SakLinux MOTD
+
+    ╔═══════════════════════════════════════╗
+    ║                                       ║
+    ║   ███████╗ █████╗ ██╗     ███████╗    ║
+    ║   ██╔════╝██╔══██╗██║     ██╔════╝    ║
+    ║   ███████╗███████║██║     ███████╗    ║
+    ║   ╚════██║██╔══██║██║     ╚════██║    ║
+    ║   ███████║██║  ██║███████╗███████║    ║
+    ║   ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝    ║
+    ║                                       ║
+    ║     🌸  L  I  N  U  X  🌸             ║
+    ║     Sakura's Subsystem                ║
+    ║                                       ║
+    ╚═══════════════════════════════════════╝
+
+  📦 Package Manager:  sak
+  🐧 Distro:           SakLinux (WSL2)
+  🎨 Theme:            Cherry Blossom
+
+  Quick Start:
+    sak help           Package manager help
+    sak install <app>  Install an application
+    sak pet            Meet your companion
+    sak search <query> Search for packages
+    sak updt           Update SakLinux
+
+  System:
+    neofetch           System information
+    htop               Process monitor
+    tmux               Terminal multiplexer
+
+  🌸 Welcome to SakLinux!

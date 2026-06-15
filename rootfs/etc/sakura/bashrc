@@ -1,0 +1,110 @@
+# 🌸 SakLinux Bash Config
+# Sakura's Subsystem for Linux
+
+# History
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth
+
+# Prompt - Sakura Cherry Blossom Theme
+PS1='\[\e[38;5;213m\]🌸 \[\e[38;5;206m\]\u\[\e[38;5;251m\]@\[\e[38;5;213m\]saklinux\[\e[38;5;251m\]:\[\e[38;5;141m\]\w\[\e[38;5;251m\]\$ \[\e[0m\]'
+
+# Colors
+alias ls='ls --color=auto'
+alias ll='ls -la --color=auto'
+alias la='ls -A --color=auto'
+alias l='ls -CF --color=auto'
+alias dir='dir --color=auto'
+
+# Modern tools
+alias cat='bat --paging=never 2>/dev/null || cat'
+alias find='fd 2>/dev/null || find'
+alias grep='rg 2>/dev/null || grep'
+alias ls='eza --icons 2>/dev/null || ls --color=auto'
+alias ll='eza -la --icons 2>/dev/null || ls -la --color=auto'
+alias cd='z 2>/dev/null || cd'
+
+# Git shortcuts
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit -m'
+alias gp='git push'
+alias gl='git log --oneline'
+alias gd='git diff'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+
+# Sakura shortcuts
+alias sak='sakura'
+alias sak-pet='sak pet'
+alias sak-up='sak update'
+alias sak-install='sak install'
+alias sak-search='sak search'
+alias sak-list='sak list'
+alias sak-buckets='sak bucket list'
+
+# System
+alias ports='netstat -tulanp'
+alias ip='ip -c'
+alias df='df -h'
+alias du='du -h'
+alias free='free -h'
+alias top='htop'
+
+# Fun
+alias sl='echo "🚂 Choo choo! You meant ls!" && ls'
+alias choo='echo "🚂 Choo choo!"'
+
+# SakLinux ASCII art
+saklinux-art() {
+    echo ""
+    echo -e "\e[38;5;213m    ███████╗ █████╗ ██╗     ███████╗\e[0m"
+    echo -e "\e[38;5;213m    ██╔════╝██╔══██╗██║     ██╔════╝\e[0m"
+    echo -e "\e[38;5;206m    ███████╗███████║██║     ███████╗\e[0m"
+    echo -e "\e[38;5;206m    ╚════██║██╔══██║██║     ╚════██║\e[0m"
+    echo -e "\e[38;5;141m    ███████║██║  ██║███████╗███████║\e[0m"
+    echo -e "\e[38;5;141m    ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝\e[0m"
+    echo ""
+    echo -e "\e[38;5;213m         🌸  L  I  N  U  X  🌸\e[0m"
+    echo ""
+}
+
+# System info
+neofetch-sak() {
+    echo ""
+    echo -e "\e[38;5;213m   ╔═══════════════════════════════╗"
+    echo -e "\e[38;5;213m   ║     🌸  S A K L I N U X  🌸     ║"
+    echo -e "\e[38;5;213m   ╚═══════════════════════════════╝\e[0m"
+    echo ""
+    if command -v neofetch &> /dev/null; then
+        neofetch --colors 213 206 251 141
+    else
+        echo "  OS: SakLinux (WSL2)"
+        echo "  Kernel: $(uname -r)"
+        echo "  Shell: $SHELL"
+        echo "  Packages: $(dpkg -l 2>/dev/null | grep -c ^ii)"
+    fi
+}
+
+# Sakura welcome
+echo ""
+echo -e "\e[38;5;213m  🌸 Welcome to SakLinux!\e[0m"
+echo -e "\e[38;5;251m  Type \e[38;5;213m'saklinux-art'\e[38;5;251m for ASCII art"
+echo -e "\e[38;5;251m  Type \e[38;5;213m'sak help'\e[38;5;251m for package manager"
+echo -e "\e[38;5;251m  Type \e[38;5;213m'sak pet'\e[38;5;251m to meet your companion"
+echo ""
+
+# Zoxide
+[ -f ~/.config/zsh/zshrc ] || eval "$(zoxide init bash 2>/dev/null)"
+
+# FZF
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --info=inline --color=bg+:#3b254f,bg:#1a1a2e,spinner:#FF69B4,hl:#FF1493,fg:#FFB7C5,header:#FF1493,info:#C71585,pointer:#FF69B4,marker:#FFB7C5,fg+:#FFB7C5,prompt:#FF69B4,hl+:#FF1493'
+
+# Sakura environment
+export SAKURA_HOME="$HOME/.sakura"
+export EDITOR="nvim"
+export VISUAL="nvim"
+export TERM="xterm-256color"
+
+# PATH
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$PATH"
