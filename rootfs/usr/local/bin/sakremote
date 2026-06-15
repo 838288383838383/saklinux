@@ -1,0 +1,333 @@
+#!/bin/bash
+# 🌸 SakLinux Remote Desktop Server
+# Supports: xRDP (Windows Remote Desktop), x11vnc, Xpra
+
+set -e
+
+# Colors
+PINK='\e[38;5;213m'
+HOT='\e[38;5;206m'
+DEEP='\e[38;5;141m'
+RESET='\e[0m'
+
+show_help() {
+    echo ""
+    echo -e "${PINK}  🌸 SakLinux Remote Desktop${RESET}"
+    echo -e "${DEEP}  ═══════════════════════════════${RESET}"
+    echo ""
+    echo -e "  Usage: sakremote <command>"
+    echo ""
+    echo -e "  Commands:"
+    echo -e "    ${HOT}start${RESET}          Start remote desktop server"
+    echo -e "    ${HOT}stop${RESET}           Stop remote desktop server"
+    echo -e "    ${HOT}status${RESET}         Show server status"
+    echo -e "    ${HOT}install${RESET}        Install remote desktop packages"
+    echo -e "    ${HOT}connect${RESET}        Show connection info"
+    echo -e "    ${HOT}rdp${RESET}            Start xRDP server (Windows RDP)"
+    echo -e "    ${HOT}vnc${RESET}            Start VNC server"
+    echo -e "    ${HOT}xpra${RESET}           Start Xpra (seamless apps)"
+    echo -e "    ${HOT}help${RESET}           Show this help"
+    echo ""
+}
+
+install_remote() {
+    echo ""
+    echo -e "${PINK}  Installing remote desktop packages...${RESET}"
+    echo ""
+
+    # Detect package manager
+    if command -v apt &> /dev/null; then
+        PKG="apt"
+        sudo apt update -y
+        sudo apt install -y xrdp x11vnc xpra dbus-x11
+    elif command -v dnf &> /dev/null; then
+        PKG="dnf"
+        sudo dnf install -y xrdp x11vnc xpra dbus
+    elif command -v pacman &> /dev/null; then
+        PKG="pacman"
+        sudo pacman -S --noconfirm xrdp x11vnc xpra dbus
+    elif command -v apk &> /dev/null; then
+        PKG="apk"
+        sudo apk add xrdp x11vnc xpra dbus
+    else
+        echo -e "  [ERR] Unknown package manager"
+        return 1
+    fi
+
+    # Configure xRDP
+    echo "sesman-xorg" > /etc/xrdp/startwm.sh 2>/dev/null || true
+    cat > /etc/xrdp/xrdp.ini 2>/dev/null << 'XRDP' || true
+[globals]
+port=3389
+max_bpp=32
+xserverbpp=24
+
+[security]
+allow_root=true
+max_retry=3
+
+[xrdp1]
+name=reconnect
+lib=libxrdp.so
+ip=127.0.0.1
+port=3389
+XRDP
+
+    # Create xsession
+    cat > ~/.xsession << 'XSESSION'
+#!/bin/bash
+export XDG_SESSION_DESKTOP=SakLinux
+export XDG_CURRENT_DESKTOP=SakLinux
+export DESKTOP_SESSION=SakLinux
+
+# Start desktop environment
+if command -v gnome-session &> /dev/null; then
+    gnome-session &
+elif command -v startplasma-x11 &> /dev/null; then
+    startplasma-x11 &
+elif command -v startxfce4 &> /dev/null; then
+    startxfce4 &
+elif command -v openbox &> /dev/null; then
+    openbox &
+elif command -v i3 &> /dev/null; then
+    i3 &
+else
+    # Fallback: just a terminal
+    xterm &
+fi
+XSESSION
+    chmod +x ~/.xsession
+
+    # Create autostart for Sakura tools
+    mkdir -p ~/.config/autostart 2>/dev/null
+    cat > ~/.config/autostart/sakura-terminal.desktop 2>/dev/null << 'AUTO' || true
+[Desktop Entry]
+Type=Application
+Name=Sakura Terminal
+Exec=gnome-terminal --title="🌸 SakLinux"
+Terminal=false
+AutoRestart=true
+AUTO
+
+    echo -e "  ${PINK}✅ Remote desktop packages installed!${RESET}"
+    echo -e "  ${DEEP}Run 'sakremote rdp' to start xRDP server${RESET}"
+    echo ""
+}
+
+start_rdp() {
+    echo ""
+    echo -e "${PINK}  🌸 Starting SakLinux xRDP Server...${RESET}"
+    echo -e "${DEEP}  ══════════════════════════════════════${RESET}"
+    echo ""
+
+    # Check if xrdp is installed
+    if ! command -v xrdp &> /dev/null; then
+        echo -e "  xRDP not found. Installing..."
+        install_remote
+    fi
+
+    # Get IP
+    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    RDP_PORT=3389
+
+    # Start xRDP
+    echo -e "  Starting xRDP service..."
+    sudo xrdp-sesman --nodaemon &>/dev/null &
+    sudo xrdp --nodaemon &>/dev/null &
+    sleep 2
+
+    # Check if running
+    if pgrep -x xrdp > /dev/null; then
+        echo ""
+        echo -e "  ${PINK}✅ xRDP Server Running!${RESET}"
+        echo ""
+        echo -e "  ${DEEP}Connect with:${RESET}"
+        echo -e "    Windows: mstsc /v:${LOCAL_IP}:${RDP_PORT}"
+        echo -e "    Address:  ${LOCAL_IP}:${RDP_PORT}"
+        echo -e "    User:     sakura"
+        echo -e "    Password: sakura"
+        echo ""
+        echo -e "  ${DEEP}Or open Remote Desktop Connection and enter:${RESET}"
+        echo -e "    ${HOT}${LOCAL_IP}:${RDP_PORT}${RESET}"
+        echo ""
+        echo -e "  ${DEEP}Press Ctrl+C to stop the server${RESET}"
+        echo ""
+
+        # Keep running
+        trap 'echo -e "\n${PINK}Stopping xRDP...${RESET}"; sudo killall xrdp xrdp-sesman 2>/dev/null; echo -e "${PINK}Server stopped.${RESET}"; exit 0' INT TERM
+        wait
+    else
+        echo -e "  [ERR] Failed to start xRDP"
+        echo -e "  ${DEEP}Try: sudo xrdp --nodaemon${RESET}"
+    fi
+}
+
+start_vnc() {
+    echo ""
+    echo -e "${PINK}  🌸 Starting SakLinux VNC Server...${RESET}"
+    echo -e "${DEEP}  ══════════════════════════════════════${RESET}"
+    echo ""
+
+    if ! command -v x11vnc &> /dev/null; then
+        echo -e "  x11vnc not found. Installing..."
+        install_remote
+    fi
+
+    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    VNC_PORT=5900
+
+    # Start display
+    if [ -z "$DISPLAY" ]; then
+        Xvnc :1 -geometry 1920x1080 -depth 24 -SecurityTypes=None &
+        export DISPLAY=:1
+        sleep 1
+    fi
+
+    # Start x11vnc
+    x11vnc -display :1 -forever -shared -nopw -rfbport $VNC_PORT &>/dev/null &
+    sleep 2
+
+    if pgrep -x x11vnc > /dev/null; then
+        echo ""
+        echo -e "  ${PINK}✅ VNC Server Running!${RESET}"
+        echo ""
+        echo -e "  ${DEEP}Connect with:${RESET}"
+        echo -e "    Address: ${LOCAL_IP}:${VNC_PORT}"
+        echo -e "    No password"
+        echo ""
+        echo -e "  ${DEEP}Use any VNC client:${RESET}"
+        echo -e "    - RealVNC Viewer"
+        echo -e "    - TightVNC"
+        echo -e "    - Remmina"
+        echo -e "    - Windows: TightVNC Viewer"
+        echo ""
+        echo -e "  ${DEEP}Press Ctrl+C to stop${RESET}"
+        echo ""
+
+        trap 'echo -e "\n${PINK}Stopping VNC...${RESET}"; killall x11vnc Xvnc 2>/dev/null; echo -e "${PINK}Server stopped.${RESET}"; exit 0' INT TERM
+        wait
+    else
+        echo -e "  [ERR] Failed to start VNC"
+    fi
+}
+
+start_xpra() {
+    echo ""
+    echo -e "${PINK}  🌸 Starting SakLinux Xpra Server...${RESET}"
+    echo -e "${DEEP}  ══════════════════════════════════════${RESET}"
+    echo ""
+
+    if ! command -v xpra &> /dev/null; then
+        echo -e "  Xpra not found. Installing..."
+        install_remote
+    fi
+
+    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    XPRA_PORT=14500
+
+    # Start Xpra
+    xpra start :1 --bind-tcp=0.0.0.0:$XPRA_PORT --tcp-auth=none --start-child=gnome-terminal &
+    sleep 3
+
+    if pgrep -x xpra > /dev/null; then
+        echo ""
+        echo -e "  ${PINK}✅ Xpra Server Running!${RESET}"
+        echo ""
+        echo -e "  ${DEEP}Connect with:${RESET}"
+        echo -e "    xpra attach tcp:${LOCAL_IP}:${XPRA_PORT}"
+        echo ""
+        echo -e "  ${DEEP}Or download xpra client:${RESET}"
+        echo -e "    https://xpra.org"
+        echo ""
+        echo -e "  ${DEEP}Press Ctrl+C to stop${RESET}"
+        echo ""
+
+        trap 'echo -e "\n${PINK}Stopping Xpra...${RESET}"; xpra stop :1 2>/dev/null; echo -e "${PINK}Server stopped.${RESET}"; exit 0' INT TERM
+        wait
+    else
+        echo -e "  [ERR] Failed to start Xpra"
+    fi
+}
+
+show_status() {
+    echo ""
+    echo -e "${PINK}  🌸 SakLinux Remote Desktop Status${RESET}"
+    echo -e "${DEEP}  ═══════════════════════════════════${RESET}"
+    echo ""
+
+    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+
+    # xRDP
+    if pgrep -x xrdp > /dev/null; then
+        echo -e "  ${HOT}xRDP:${RESET}  ✅ Running (port 3389)"
+    else
+        echo -e "  ${HOT}xRDP:${RESET}  ❌ Stopped"
+    fi
+
+    # VNC
+    if pgrep -x x11vnc > /dev/null; then
+        echo -e "  ${HOT}VNC:${RESET}   ✅ Running (port 5900)"
+    else
+        echo -e "  ${HOT}VNC:${RESET}   ❌ Stopped"
+    fi
+
+    # Xpra
+    if pgrep -x xpra > /dev/null; then
+        echo -e "  ${HOT}Xpra:${RESET}  ✅ Running (port 14500)"
+    else
+        echo -e "  ${HOT}Xpra:${RESET}  ❌ Stopped"
+    fi
+
+    echo ""
+    echo -e "  ${DEEP}Local IP: ${LOCAL_IP}${RESET}"
+    echo ""
+}
+
+show_connect() {
+    echo ""
+    echo -e "${PINK}  🌸 SakLinux Remote Desktop Connections${RESET}"
+    echo -e "${DEEP}  ══════════════════════════════════════════${RESET}"
+    echo ""
+
+    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+
+    echo -e "  ${HOT}Windows Remote Desktop (xRDP):${RESET}"
+    echo -e "    1. Open 'Remote Desktop Connection' (mstsc)"
+    echo -e "    2. Enter: ${DEEP}${LOCAL_IP}:3389${RESET}"
+    echo -e "    3. Login: sakura / sakura"
+    echo ""
+    echo -e "  ${HOT}VNC Client:${RESET}"
+    echo -e "    1. Install VNC Viewer (RealVNC, TightVNC, etc.)"
+    echo -e "    2. Enter: ${DEEP}${LOCAL_IP}:5900${RESET}"
+    echo -e "    3. No password"
+    echo ""
+    echo -e "  ${HOT}Xpra (seamless apps):${RESET}"
+    echo -e "    1. Install xpra client on Windows"
+    echo -e "    2. Run: ${DEEP}xpra attach tcp:${LOCAL_IP}:14500${RESET}"
+    echo -e "    3. Individual apps appear on Windows desktop"
+    echo ""
+    echo -e "  ${HOT}From Windows CMD/PowerShell:${RESET}"
+    echo -e "    ${DEEP}mstsc /v:${LOCAL_IP}:3389${RESET}"
+    echo ""
+}
+
+stop_all() {
+    echo ""
+    echo -e "${PINK}  Stopping all remote desktop servers...${RESET}"
+    sudo killall xrdp xrdp-sesman x11vnc xpra Xvnc 2>/dev/null || true
+    echo -e "  ${PINK}All servers stopped.${RESET}"
+    echo ""
+}
+
+# Main
+case "${1:-help}" in
+    rdp)        start_rdp ;;
+    vnc)        start_vnc ;;
+    xpra)       start_xpra ;;
+    start)      start_rdp ;;
+    stop)       stop_all ;;
+    status)     show_status ;;
+    connect)    show_connect ;;
+    install)    install_remote ;;
+    help|*)     show_help ;;
+esac

@@ -68,15 +68,25 @@
         "desktop": {
             "gnome": [
                 "wsl -d SakLinux -- sudo apt update",
-                "wsl -d SakLinux -- sudo apt install -y gnome-shell gnome-terminal gnome-tweaks"
+                "wsl -d SakLinux -- sudo apt install -y gnome-shell gnome-terminal gnome-tweaks",
+                "wsl -d SakLinux -- sudo apt install -y xrdp x11vnc dbus-x11",
+                "wsl -d SakLinux -- bash -c 'echo \"sesman-xorg\" | sudo tee /etc/xrdp/startwm.sh > /dev/null'"
             ],
             "kde": [
                 "wsl -d SakLinux -- sudo apt update",
-                "wsl -d SakLinux -- sudo apt install -y kde-plasma-desktop konsole"
+                "wsl -d SakLinux -- sudo apt install -y kde-plasma-desktop konsole",
+                "wsl -d SakLinux -- sudo apt install -y xrdp x11vnc dbus-x11",
+                "wsl -d SakLinux -- bash -c 'echo \"sesman-xorg\" | sudo tee /etc/xrdp/startwm.sh > /dev/null'"
             ],
             "xfce": [
                 "wsl -d SakLinux -- sudo apt update",
-                "wsl -d SakLinux -- sudo apt install -y xfce4 xfce4-terminal"
+                "wsl -d SakLinux -- sudo apt install -y xfce4 xfce4-terminal",
+                "wsl -d SakLinux -- sudo apt install -y xrdp x11vnc dbus-x11",
+                "wsl -d SakLinux -- bash -c 'echo \"sesman-xorg\" | sudo tee /etc/xrdp/startwm.sh > /dev/null'"
+            ],
+            "none": [
+                "wsl -d SakLinux -- sudo apt update",
+                "wsl -d SakLinux -- sudo apt install -y x11vnc dbus-x11"
             ]
         },
         "install_sakura_pkg": {
@@ -113,12 +123,24 @@
         }
     },
     "post_install": [
+        "Copy-Item (Join-Path $PSScriptRoot 'sakremote.ps1') (Join-Path $env:USERPROFILE 'sakremote.ps1') -Force -ErrorAction SilentlyContinue",
         "Write-Host ''",
         "Write-Host '  🌸 SakLinux installed!' -ForegroundColor Green",
         "Write-Host ''",
         "Write-Host '  Launch with:' -ForegroundColor Yellow",
         "Write-Host '    saklinux' -ForegroundColor White",
         "Write-Host '    wsl -d SakLinux' -ForegroundColor White",
+        "Write-Host ''",
+        "if ($desktop -ne 'none') {",
+        "    Write-Host '  Remote Desktop:' -ForegroundColor Yellow",
+        "    Write-Host '    .\\sakremote.ps1 rdp   # Windows RDP' -ForegroundColor White",
+        "    Write-Host '    .\\sakremote.ps1 vnc   # VNC client' -ForegroundColor White",
+        "    Write-Host ''",
+        "    Write-Host '  Or inside SakLinux:' -ForegroundColor Yellow",
+        "    Write-Host '    sakremote rdp         # Start xRDP server' -ForegroundColor White",
+        "    Write-Host '    sakremote vnc         # Start VNC server' -ForegroundColor White",
+        "    Write-Host '    sakremote connect     # Show connection info' -ForegroundColor White",
+        "}",
         "Write-Host ''",
         "Write-Host '  First boot will finalize setup.' -ForegroundColor DarkGray",
         "Write-Host ''"

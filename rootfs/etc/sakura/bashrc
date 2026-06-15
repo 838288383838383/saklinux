@@ -55,6 +55,12 @@ alias top='htop'
 alias sl='echo "🚂 Choo choo! You meant ls!" && ls'
 alias choo='echo "🚂 Choo choo!"'
 
+# Remote desktop shortcuts
+alias sakremote='sakremote'
+alias rdp='sakremote rdp'
+alias vnc='sakremote vnc'
+alias remote='sakremote connect'
+
 # SakLinux ASCII art
 saklinux-art() {
     echo ""
